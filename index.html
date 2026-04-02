@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube DJ Fader</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0a0a0f;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      text-align: center;
+      padding: 1.25rem 1rem;
+      border-bottom: 1px solid #1e1e2e;
+      background: #0d0d1a;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #818cf8, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: #64748b;
+      font-size: 0.8rem;
+      margin-top: 0.2rem;
+      letter-spacing: 0.05em;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      gap: 0;
+      padding: 1.25rem;
+      align-items: flex-start;
+    }
+
+    /* ── Deck panels ── */
+    .panel {
+      flex: 1;
+      background: #111118;
+      border: 1px solid #1e1e2e;
+      border-radius: 12px;
+      padding: 1.125rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.875rem;
+      min-width: 0;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .deck-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+
+    .status-badge {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+    .status-badge.playing  { background: #052e16; color: #4ade80; border: 1px solid #16a34a; }
+    .status-badge.paused   { background: #1c1008; color: #fbbf24; border: 1px solid #d97706; }
+    .status-badge.ready    { background: #0f172a; color: #818cf8; border: 1px solid #4f46e5; }
+    .status-badge.idle     { background: #161620; color: #4a4a6e; border: 1px solid #2a2a3e; }
+
+    /* ── URL input row ── */
+    .url-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .url-input {
+      flex: 1;
+      background: #0d0d1a;
+      border: 1px solid #2a2a3e;
+      border-radius: 6px;
+      padding: 0.45rem 0.75rem;
+      color: #e2e8f0;
+      font-size: 0.8rem;
+      outline: none;
+      transition: border-color 0.15s;
+      min-width: 0;
+    }
+    .url-input:focus { border-color: #6d28d9; }
+    .url-input::placeholder { color: #32325a; }
+
+    .btn {
+      background: #1e1e30;
+      border: 1px solid #2a2a3e;
+      border-radius: 6px;
+      color: #e2e8f0;
+      padding: 0.45rem 0.875rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .btn:hover:not(:disabled) { background: #2a2a40; border-color: #4a4a6e; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-load {
+      background: #1e0b35;
+      border-color: #5b21b6;
+    }
+    .btn-load:hover:not(:disabled) { background: #2d1050; border-color: #7c3aed; }
+
+    /* ── YouTube player ── */
+    .player-wrapper {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #1a1a2a;
+    }
+
+    .player-wrapper > div,
+    .player-wrapper iframe {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border: none;
+    }
+
+    .player-placeholder {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #2e2e4e;
+      font-size: 0.8rem;
+      pointer-events: none;
+      gap: 0.625rem;
+      letter-spacing: 0.05em;
+    }
+
+    .player-placeholder svg {
+      width: 40px;
+      height: 40px;
+    }
+
+    /* ── Volume control ── */
+    .volume-row {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+    }
+
+    .volume-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #4a4a6e;
+      width: 2.5rem;
+      flex-shrink: 0;
+    }
+
+    .volume-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 3px;
+      background: #1e1e30;
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+      min-width: 0;
+    }
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 13px;
+      height: 13px;
+      background: #7c3aed;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.1s;
+    }
+    .volume-slider::-webkit-slider-thumb:hover { transform: scale(1.25); background: #8b5cf6; }
+    .volume-slider::-moz-range-thumb {
+      width: 13px;
+      height: 13px;
+      background: #7c3aed;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
+    .volume-value {
+      font-size: 0.72rem;
+      color: #64748b;
+      width: 2.5rem;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    /* ── Play/Pause button ── */
+    .play-btn {
+      width: 100%;
+      padding: 0.55rem;
+      background: #161620;
+      border: 1px solid #2a2a3e;
+      border-radius: 8px;
+      color: #94a3b8;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      transition: all 0.15s;
+      letter-spacing: 0.05em;
+    }
+    .play-btn:hover:not(:disabled) { background: #1e1e2e; border-color: #3a3a5e; color: #e2e8f0; }
+    .play-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .play-btn.playing { border-color: #15803d; color: #4ade80; background: #071e0e; }
+    .play-btn.paused  { border-color: #b45309; color: #fbbf24; background: #13100a; }
+
+    /* ── Center controls ── */
+    .center-controls {
+      width: 148px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 1rem;
+      padding: 1.125rem 0.875rem;
+      position: sticky;
+      top: 1.25rem;
+    }
+
+    .flow-indicator {
+      font-size: 1.4rem;
+      color: #2e2e4e;
+      transition: color 0.3s, transform 0.3s;
+      line-height: 1;
+    }
+    .flow-indicator.active { color: #7c3aed; }
+
+    /* ── FADE button ── */
+    .fade-btn {
+      width: 100%;
+      padding: 0.9rem 0.5rem;
+      background: linear-gradient(160deg, #1e0b35 0%, #0e1e3a 100%);
+      border: 1px solid #3b1d6e;
+      border-radius: 12px;
+      color: #c4b5fd;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .fade-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(160deg, rgba(124,58,237,0.25), rgba(59,130,246,0.25));
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .fade-btn:hover:not(:disabled)::after { opacity: 1; }
+    .fade-btn:hover:not(:disabled) {
+      border-color: #7c3aed;
+      color: #ddd6fe;
+      box-shadow: 0 0 18px rgba(124,58,237,0.25);
+    }
+
+    .fade-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      background: #111118;
+      border-color: #1e1e2e;
+      color: #3a3a5e;
+    }
+
+    .fade-btn.fading {
+      border-color: #3b82f6;
+      color: #93c5fd;
+      animation: pulse-glow 1.2s ease-in-out infinite;
+      cursor: not-allowed;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 8px rgba(59,130,246,0.2); }
+      50%       { box-shadow: 0 0 22px rgba(59,130,246,0.5); }
+    }
+
+    /* ── Fade progress bar ── */
+    .fade-progress-wrap {
+      width: 100%;
+    }
+
+    .fade-progress-bar {
+      width: 100%;
+      height: 3px;
+      background: #1a1a2a;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .fade-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #7c3aed, #3b82f6);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.08s linear;
+    }
+
+    .fade-progress-label {
+      font-size: 0.6rem;
+      color: #4a4a6e;
+      text-align: center;
+      margin-top: 0.3rem;
+      letter-spacing: 0.08em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Fade duration control ── */
+    .setting-group {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .setting-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #3a3a5e;
+      text-align: center;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+
+    .duration-input {
+      width: 52px;
+      background: #0d0d1a;
+      border: 1px solid #2a2a3e;
+      border-radius: 6px;
+      padding: 0.35rem 0.5rem;
+      color: #e2e8f0;
+      font-size: 0.82rem;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .duration-input:focus { border-color: #6d28d9; }
+
+    .setting-unit {
+      font-size: 0.7rem;
+      color: #3a3a5e;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 0.75rem;
+      border-top: 1px solid #111118;
+      color: #252535;
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 860px) {
+      main { flex-direction: column; }
+      .center-controls {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        position: static;
+        padding: 0.5rem 1rem;
+      }
+      .fade-btn { width: auto; padding: 0.75rem 2rem; }
+      .flow-indicator { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>YouTube DJ Fader</h1>
+  <p>Seamless audio transitions for your tabletop sessions</p>
+</header>
+
+<main>
+
+  <!-- ── Deck A ── -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="deck-label">Deck A</span>
+      <span class="status-badge idle" id="status1">Idle</span>
+    </div>
+
+    <div class="url-row">
+      <input type="text" class="url-input" id="url1"
+             placeholder="Paste YouTube URL…"
+             onkeydown="if(event.key==='Enter') loadVideo(1)">
+      <button class="btn btn-load" onclick="loadVideo(1)">Load</button>
+    </div>
+
+    <div class="player-wrapper">
+      <div id="player1"></div>
+      <div class="player-placeholder" id="placeholder1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <rect x="2" y="3" width="20" height="14" rx="2"/>
+          <path d="M8 21h8M12 17v4"/>
+        </svg>
+        Load a video above
+      </div>
+    </div>
+
+    <div class="volume-row">
+      <span class="volume-label">Vol</span>
+      <input type="range" class="volume-slider" id="vol1" min="0" max="100" value="100"
+             oninput="setVolume(1, this.value)">
+      <span class="volume-value" id="vol1-display">100%</span>
+    </div>
+
+    <button class="play-btn" id="play-btn1" onclick="togglePlay(1)" disabled>
+      <span id="play-icon1">▶</span>
+      <span id="play-text1">Play</span>
+    </button>
+  </div>
+
+  <!-- ── Center controls ── -->
+  <div class="center-controls">
+
+    <div class="flow-indicator" id="flow-indicator">⇄</div>
+
+    <button class="fade-btn" id="fade-btn" onclick="startFade()" disabled>
+      FADE
+    </button>
+
+    <div class="fade-progress-wrap" id="fade-progress-wrap" style="display:none">
+      <div class="fade-progress-bar">
+        <div class="fade-progress-fill" id="fade-progress-fill"></div>
+      </div>
+      <div class="fade-progress-label" id="fade-progress-label">0%</div>
+    </div>
+
+    <div class="setting-group">
+      <div class="setting-label">Fade Duration</div>
+      <div class="setting-row">
+        <input type="number" class="duration-input" id="fade-duration"
+               value="5" min="1" max="60">
+        <span class="setting-unit">sec</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Deck B ── -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="deck-label">Deck B</span>
+      <span class="status-badge idle" id="status2">Idle</span>
+    </div>
+
+    <div class="url-row">
+      <input type="text" class="url-input" id="url2"
+             placeholder="Paste YouTube URL…"
+             onkeydown="if(event.key==='Enter') loadVideo(2)">
+      <button class="btn btn-load" onclick="loadVideo(2)">Load</button>
+    </div>
+
+    <div class="player-wrapper">
+      <div id="player2"></div>
+      <div class="player-placeholder" id="placeholder2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <rect x="2" y="3" width="20" height="14" rx="2"/>
+          <path d="M8 21h8M12 17v4"/>
+        </svg>
+        Load a video above
+      </div>
+    </div>
+
+    <div class="volume-row">
+      <span class="volume-label">Vol</span>
+      <input type="range" class="volume-slider" id="vol2" min="0" max="100" value="100"
+             oninput="setVolume(2, this.value)">
+      <span class="volume-value" id="vol2-display">100%</span>
+    </div>
+
+    <button class="play-btn" id="play-btn2" onclick="togglePlay(2)" disabled>
+      <span id="play-icon2">▶</span>
+      <span id="play-text2">Play</span>
+    </button>
+  </div>
+
+</main>
+
+<footer>YouTube DJ Fader &mdash; Built for Tabletop RPG Game Masters</footer>
+
+<script>
+  // ── Load the YouTube IFrame API ──────────────────────────────────────────
+  (function() {
+    var tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+  })();
+
+  // ── State ────────────────────────────────────────────────────────────────
+  var player1, player2;
+  var p1Ready = false, p2Ready = false;
+  var fadeInterval = null;
+  var fadeOutNum = null, fadeInNum = null;
+  var fadeStartVol = 0, fadeTargetVol = 0, fadeStartTime = 0, fadeDurationMs = 0;
+
+  // ── YouTube API callback ─────────────────────────────────────────────────
+  window.onYouTubeIframeAPIReady = function() {
+    player1 = new YT.Player('player1', {
+      height: '100%', width: '100%',
+      playerVars: { playsinline: 1, rel: 0, modestbranding: 1 },
+      events: {
+        onReady:       function()  { p1Ready = true; updateUI(); },
+        onStateChange: function(e) { onStateChange(1, e); }
+      }
+    });
+
+    player2 = new YT.Player('player2', {
+      height: '100%', width: '100%',
+      playerVars: { playsinline: 1, rel: 0, modestbranding: 1 },
+      events: {
+        onReady:       function()  { p2Ready = true; updateUI(); },
+        onStateChange: function(e) { onStateChange(2, e); }
+      }
+    });
+  };
+
+  // ── YouTube state change handler ─────────────────────────────────────────
+  function onStateChange(num, event) {
+    // Hide placeholder once a video is cued or beyond
+    var s = event.data;
+    if (s === YT.PlayerState.CUED   ||
+        s === YT.PlayerState.PLAYING ||
+        s === YT.PlayerState.PAUSED  ||
+        s === YT.PlayerState.ENDED   ||
+        s === YT.PlayerState.BUFFERING) {
+      document.getElementById('placeholder' + num).style.display = 'none';
+      document.getElementById('play-btn' + num).disabled = false;
+    }
+    updateUI();
+  }
+
+  // ── Parse YouTube video ID from various URL formats ──────────────────────
+  function parseVideoId(raw) {
+    if (!raw) return null;
+    var url = raw.trim();
+
+    // Try the URL API first
+    try {
+      var u = new URL(url);
+      if (u.hostname === 'youtu.be' || u.hostname === 'www.youtu.be') {
+        return u.pathname.slice(1).split(/[/?]/)[0] || null;
+      }
+      if (u.hostname.includes('youtube.com')) {
+        return u.searchParams.get('v') || null;
+      }
+    } catch (e) {}
+
+    // Fallback regex
+    var m = url.match(/(?:[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    return m ? m[1] : null;
+  }
+
+  // ── Load a video into a deck ─────────────────────────────────────────────
+  function loadVideo(num) {
+    var url = document.getElementById('url' + num).value.trim();
+    var id  = parseVideoId(url);
+
+    if (!id) {
+      alert('Please enter a valid YouTube video URL.');
+      return;
+    }
+
+    var player = num === 1 ? player1 : player2;
+    if (!player || typeof player.cueVideoById !== 'function') {
+      alert('Player not ready yet — please wait a moment and try again.');
+      return;
+    }
+
+    player.cueVideoById(id);
+    document.getElementById('placeholder' + num).style.display = 'none';
+    document.getElementById('play-btn' + num).disabled = false;
+    updateUI();
+  }
+
+  // ── Toggle play / pause ──────────────────────────────────────────────────
+  function togglePlay(num) {
+    var player = num === 1 ? player1 : player2;
+    if (!player) return;
+    if (player.getPlayerState() === YT.PlayerState.PLAYING) {
+      player.pauseVideo();
+    } else {
+      player.playVideo();
+    }
+  }
+
+  // ── Set volume from slider ───────────────────────────────────────────────
+  function setVolume(num, value) {
+    var player = num === 1 ? player1 : player2;
+    if (player && typeof player.setVolume === 'function') {
+      player.setVolume(parseInt(value, 10));
+    }
+    document.getElementById('vol' + num + '-display').textContent = value + '%';
+  }
+
+  // ── Safe wrapper: get player state ───────────────────────────────────────
+  function getState(num) {
+    try {
+      var p = num === 1 ? player1 : player2;
+      if (!p || typeof p.getPlayerState !== 'function') return -1;
+      return p.getPlayerState();
+    } catch (e) { return -1; }
+  }
+
+  // ── Update all UI elements to reflect current state ──────────────────────
+  function updateUI() {
+    if (typeof YT === 'undefined' || !YT.PlayerState) return;
+
+    updateDeckUI(1);
+    updateDeckUI(2);
+
+    var s1 = getState(1);
+    var s2 = getState(2);
+    var P  = YT.PlayerState;
+
+    var playing1 = s1 === P.PLAYING;
+    var playing2 = s2 === P.PLAYING;
+    var inactive1 = s1 === P.PAUSED || s1 === P.CUED || s1 === P.ENDED;
+    var inactive2 = s2 === P.PAUSED || s2 === P.CUED || s2 === P.ENDED;
+
+    var canFade = (fadeInterval === null) && (
+      (playing1 && inactive2) ||
+      (playing2 && inactive1)
+    );
+
+    var fadeBtn = document.getElementById('fade-btn');
+    if (fadeInterval === null) {
+      fadeBtn.disabled = !canFade;
+      fadeBtn.classList.remove('fading');
+      fadeBtn.textContent = 'FADE';
+    }
+
+    // Flow direction indicator
+    var indicator = document.getElementById('flow-indicator');
+    if (playing1 && inactive2) {
+      indicator.textContent = '→';
+      indicator.classList.add('active');
+    } else if (playing2 && inactive1) {
+      indicator.textContent = '←';
+      indicator.classList.add('active');
+    } else {
+      indicator.textContent = '⇄';
+      indicator.classList.remove('active');
+    }
+  }
+
+  function updateDeckUI(num) {
+    var state    = getState(num);
+    var statusEl = document.getElementById('status' + num);
+    var playBtn  = document.getElementById('play-btn' + num);
+    var icon     = document.getElementById('play-icon' + num);
+    var label    = document.getElementById('play-text' + num);
+
+    if (typeof YT === 'undefined' || !YT.PlayerState) return;
+    var P = YT.PlayerState;
+
+    switch (state) {
+      case P.PLAYING:
+        statusEl.className = 'status-badge playing';
+        statusEl.textContent = 'Playing';
+        playBtn.className = 'play-btn playing';
+        icon.textContent  = '⏸';
+        label.textContent = 'Pause';
+        playBtn.disabled  = false;
+        break;
+
+      case P.PAUSED:
+        statusEl.className = 'status-badge paused';
+        statusEl.textContent = 'Paused';
+        playBtn.className = 'play-btn paused';
+        icon.textContent  = '▶';
+        label.textContent = 'Play';
+        playBtn.disabled  = false;
+        break;
+
+      case P.BUFFERING:
+        statusEl.className = 'status-badge idle';
+        statusEl.textContent = 'Loading…';
+        playBtn.disabled = true;
+        break;
+
+      case P.CUED:
+        statusEl.className = 'status-badge ready';
+        statusEl.textContent = 'Ready';
+        playBtn.className = 'play-btn';
+        icon.textContent  = '▶';
+        label.textContent = 'Play';
+        playBtn.disabled  = false;
+        break;
+
+      case P.ENDED:
+        statusEl.className = 'status-badge idle';
+        statusEl.textContent = 'Ended';
+        playBtn.className = 'play-btn';
+        icon.textContent  = '▶';
+        label.textContent = 'Replay';
+        playBtn.disabled  = false;
+        break;
+
+      default:
+        statusEl.className = 'status-badge idle';
+        statusEl.textContent = 'Idle';
+        playBtn.className = 'play-btn';
+        icon.textContent  = '▶';
+        label.textContent = 'Play';
+        break;
+    }
+  }
+
+  // ── Begin crossfade ──────────────────────────────────────────────────────
+  function startFade() {
+    if (fadeInterval) return;
+
+    var s1 = getState(1);
+    var s2 = getState(2);
+    var P  = YT.PlayerState;
+
+    // Determine which deck is outgoing and which is incoming
+    if (s1 === P.PLAYING) {
+      fadeOutNum = 1; fadeInNum = 2;
+    } else if (s2 === P.PLAYING) {
+      fadeOutNum = 2; fadeInNum = 1;
+    } else {
+      return;
+    }
+
+    var outPlayer = fadeOutNum === 1 ? player1 : player2;
+    var inPlayer  = fadeInNum  === 1 ? player1 : player2;
+
+    // Capture volumes
+    fadeStartVol  = outPlayer.getVolume();
+    var rawTarget = parseInt(document.getElementById('vol' + fadeInNum).value, 10);
+    fadeTargetVol = (isNaN(rawTarget) || rawTarget <= 0) ? 100 : rawTarget;
+
+    fadeDurationMs = Math.max(1000, Math.min(60000,
+      (parseFloat(document.getElementById('fade-duration').value) || 5) * 1000
+    ));
+    fadeStartTime = Date.now();
+
+    // Kick off incoming deck silently
+    inPlayer.setVolume(0);
+    document.getElementById('vol' + fadeInNum).value = 0;
+    document.getElementById('vol' + fadeInNum + '-display').textContent = '0%';
+    inPlayer.playVideo();
+
+    // Update button state
+    var fadeBtn = document.getElementById('fade-btn');
+    fadeBtn.disabled  = true;
+    fadeBtn.classList.add('fading');
+    fadeBtn.textContent = 'FADING…';
+
+    document.getElementById('fade-progress-wrap').style.display = 'block';
+
+    fadeInterval = setInterval(tickFade, 50);
+  }
+
+  // ── Fade tick (called every 50 ms) ───────────────────────────────────────
+  function tickFade() {
+    var elapsed  = Date.now() - fadeStartTime;
+    var progress = Math.min(elapsed / fadeDurationMs, 1);
+
+    var outVol = Math.round(fadeStartVol  * (1 - progress));
+    var inVol  = Math.round(fadeTargetVol * progress);
+
+    var outPlayer = fadeOutNum === 1 ? player1 : player2;
+    var inPlayer  = fadeInNum  === 1 ? player1 : player2;
+
+    outPlayer.setVolume(outVol);
+    inPlayer.setVolume(inVol);
+
+    // Sync sliders
+    document.getElementById('vol' + fadeOutNum).value = outVol;
+    document.getElementById('vol' + fadeOutNum + '-display').textContent = outVol + '%';
+    document.getElementById('vol' + fadeInNum).value  = inVol;
+    document.getElementById('vol' + fadeInNum  + '-display').textContent = inVol  + '%';
+
+    // Progress bar
+    var pct = Math.round(progress * 100);
+    document.getElementById('fade-progress-fill').style.width = pct + '%';
+    document.getElementById('fade-progress-label').textContent = pct + '%';
+
+    if (progress >= 1) {
+      finishFade();
+    }
+  }
+
+  // ── Wrap up after fade completes ─────────────────────────────────────────
+  function finishFade() {
+    clearInterval(fadeInterval);
+    fadeInterval = null;
+
+    var outPlayer = fadeOutNum === 1 ? player1 : player2;
+
+    // Pause the outgoing deck and restore its volume for next use
+    outPlayer.pauseVideo();
+    outPlayer.setVolume(fadeStartVol);
+    document.getElementById('vol' + fadeOutNum).value = fadeStartVol;
+    document.getElementById('vol' + fadeOutNum + '-display').textContent = fadeStartVol + '%';
+
+    // Reset progress UI
+    document.getElementById('fade-progress-wrap').style.display = 'none';
+    document.getElementById('fade-progress-fill').style.width   = '0%';
+    document.getElementById('fade-progress-label').textContent  = '0%';
+
+    fadeOutNum = fadeInNum = null;
+
+    updateUI();
+  }
+
+  // ── Periodic sync (catches any missed state change events) ───────────────
+  setInterval(updateUI, 800);
+</script>
+
+</body>
+</html>
