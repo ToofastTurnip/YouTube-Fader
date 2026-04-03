@@ -1,6 +1,6 @@
 # YouTube Fader
 
-A DJ-style audio crossfader for YouTube videos — built for tabletop RPG game masters who want seamless transitions between ambiance, combat music, and any other audio tracks during a session.
+A DJ-style audio crossfader for YouTube videos built for tabletop RPG game masters who want seamless transitions between ambiance, combat music, and any other audio tracks during a session. But you can use it for whatever I'm not picky.
 
 **[Try it live →](https://toofastturnip.github.io/YouTube-Fader/)**
 
@@ -18,10 +18,10 @@ Paste any YouTube URL into Deck A or Deck B and click **Load**. The video will c
 
 Each deck is independent:
 
-- **Load** — paste a YouTube URL and click Load (or press Enter)
-- **Play / Pause** — toggle playback for that deck
-- **Volume slider** — controls the volume of that deck only
-- **Track chip** (bottom of each deck) — shows the loaded video's title; drag it to the playlist to move the track there, or use the pencil icon to rename it and the trash icon to clear the deck
+- **Load**: paste a YouTube URL and click Load (or press Enter)
+- **Play / Pause**: toggle playback for that deck
+- **Volume slider**: controls the volume of that deck only
+- **Track chip** (bottom of each deck): shows the loaded video's title; drag it to the playlist to move the track there, or use the pencil icon to rename it and the trash icon to clear the deck
 
 ---
 
@@ -41,13 +41,12 @@ Set the **Fade Duration** (in seconds) before triggering to control how fast the
 
 The playlist lives below the decks and holds your track queue.
 
-- **Add a track** — paste a YouTube URL into the playlist input and click **Add**
-- **Reorder** — drag tracks up and down by their handle (⣿)
-- **Load to a deck** — drag a playlist track up onto either deck's title chip
-- **Send a deck to playlist** — drag a deck's title chip down into the playlist
-- Both of the above are **moves** — the track is removed from its origin
+- **Add a track**: paste a YouTube URL into the playlist input and click **Add**
+- **Reorder**: drag tracks up and down by their handle (⣿)
+- **Load to a deck**: drag a playlist track up onto either deck's title chip
+- **Send a deck to playlist**: drag a deck's title chip down into the playlist
 
-Hovering over a playlist item for 1 second shows a thumbnail preview.
+Hovering over a playlist item for 1 second shows a thumbnail preview!
 
 ### Renaming tracks
 
@@ -78,8 +77,8 @@ Click the trash icon next to a session. You'll be asked to confirm.
 ### Exporting and importing
 
 - **Export** (↓ icon) — downloads a single session as a `.json` file
-- **Export All** — downloads all sessions as one `.json` file
-- **Import JSON** — imports a `.json` file (single session or an array of sessions) and appends them to your session list
+- **Export All** downloads all sessions as one `.json` file
+- **Import JSON** imports a `.json` file (single session or an array of sessions) and appends them to your session list
 
 Exported files are a good way to back up a playlist you've spent time building, or to share a curated track list with another GM.
 
@@ -105,5 +104,5 @@ Click the **✕ Clear** button in the top-left corner to wipe both decks and the
 
 ## Other Features
 
-- **Light / Dark mode** — toggle with the ☀ / ☾ button in the top-right corner; preference is remembered across sessions
-- **Layering audio** — you can play both decks simultaneously at any volume mix by using the individual volume sliders without triggering the crossfade
+- **Light / Dark mode** toggle with the ☀ / ☾ button in the top-right corner; preference is remembered across sessions
+- **Layering audio** you can play both decks simultaneously at any volume mix by using the individual volume sliders without triggering the crossfade
