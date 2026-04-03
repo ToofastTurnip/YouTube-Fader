@@ -1325,10 +1325,22 @@
       e.stopPropagation();
       box.classList.remove('drop-active');
       if (currentDrag && currentDrag.source === 'playlist') {
+        var fromIdx  = findPlaylistByUid(currentDrag.uid);
+        var existing = deckInfo[num - 1];
+        if (existing && existing.id && fromIdx >= 0) {
+          // Swap: put the deck's current video into the slot the dragged item occupied
+          playlist.splice(fromIdx, 1, {
+            uid: ++playlistSeq, id: existing.id,
+            title: existing.title, originalTitle: existing.originalTitle || existing.title,
+            author: existing.author || ''
+          });
+          renderPlaylist();
+        } else {
+          removeFromPlaylist(currentDrag.uid);
+        }
         loadVideoToDeck(num, currentDrag.id, currentDrag.title, currentDrag.author, currentDrag.originalTitle);
         document.getElementById('url' + num).value =
           'https://www.youtube.com/watch?v=' + currentDrag.id;
-        removeFromPlaylist(currentDrag.uid);
       }
       currentDrag = null;
     });
