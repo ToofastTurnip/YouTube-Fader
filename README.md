@@ -1,3 +1,5 @@
+HEY! Go check out **[the new and updated version of this project!](https://fantasyfader.com)**
+
 # YouTube Fader
 
 A DJ-style audio crossfader for YouTube videos built for tabletop RPG game masters who want seamless transitions between ambiance, combat music, and any other audio tracks during a session. But you can use it for whatever I'm not picky.
